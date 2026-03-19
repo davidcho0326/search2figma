@@ -1,0 +1,9 @@
+data/
+__pycache__/
+*.pyc
+.env
+.env.local
+*.egg-info/
+node_modules/
+.next/
+frontend/.env.local
