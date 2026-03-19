@@ -76,41 +76,22 @@ Figma에 바로 넣을까요?
 ### Phase 2: 이미지 베리에이션 생성 (캐릭터 카드만)
 
 ```python
-import sys
+import sys, os
 sys.path.insert(0, "C:/python/venv/sns_card_news_for_theplay")
 
 from sns_card_factory.env import load_env
 load_env()
 
-from google import genai
-from google.genai import types
-from PIL import Image
-from io import BytesIO
-import base64, os
+from sns_card_factory.cardnews.card_generator import generate_character_variation
 
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-ref_image = Image.open("<레퍼런스_이미지_경로>")
-
-response = client.models.generate_content(
-    model="gemini-3.1-flash-image-preview",
-    contents=[ref_image, "<사용자_변형_프롬프트>"],
-    config=types.GenerateContentConfig(
-        response_modalities=["TEXT", "IMAGE"],
-        image_config=types.ImageConfig(aspect_ratio="3:4", image_size="1K")
-    )
-)
-
-# 이미지 추출 (as_image() 사용 금지)
 output_dir = "C:/python/venv/sns_card_news_for_theplay/data/card_output"
-os.makedirs(output_dir, exist_ok=True)
+output_path = os.path.join(output_dir, "<output_filename>.png")
 
-for part in response.parts:
-    if part.inline_data is not None:
-        image_bytes = part.inline_data.data
-        if isinstance(image_bytes, str):
-            image_bytes = base64.b64decode(image_bytes)
-        img = Image.open(BytesIO(image_bytes))
-        img.save(os.path.join(output_dir, "<output_filename>.png"))
+image_path = generate_character_variation(
+    ref_image_path="<레퍼런스_이미지_경로>",
+    variation_prompt="<사용자_변형_프롬프트>",
+    output_path=output_path,
+)
 ```
 
 **프롬프트 작성 규칙:**
@@ -121,14 +102,34 @@ for part in response.parts:
 
 ### Phase 3: HTML 카드 생성
 
-`sns_card_factory.utils.hex_to_rgba()`를 활용하여 그라데이션 색상 계산.
-HTML 파일은 output_dir에 저장.
+`card_generator` 모듈의 HTML 생성 함수 사용:
 
-**필수 포함 요소:**
-- Pretendard 폰트 CDN import
-- `<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>`
-- 카드 크기: 1080×1350px 고정
-- 그라데이션 오버레이의 rgba 색상은 bg_color에서 `hex_to_rgba()`로 자동 추출
+**캐릭터 카드:**
+```python
+from sns_card_factory.cardnews.card_generator import generate_character_card_html
+
+html_path = generate_character_card_html(
+    image_filename="<생성된_이미지_파일명>.png",
+    highlight_text="앱 캐릭터의 감정이 실제 행동을 바꿀 수 있을까요?",
+    body_lines=["듀오가 슬퍼하면 왠지 미안해지고", "알림을 무시하면 괜히 죄책감이 들어요."],
+    output_path=os.path.join(output_dir, "card_output.html"),
+    logo="In10T",
+    bg_color="#7B5EA7",
+)
+```
+
+**텍스트 카드:**
+```python
+from sns_card_factory.cardnews.card_generator import generate_text_card_html
+
+html_path = generate_text_card_html(
+    title="테스트 제목",
+    body_lines=["첫 번째 줄", "", "세 번째 줄은 볼드 포함"],
+    output_path=os.path.join(output_dir, "card_text.html"),
+    bold_keywords=["볼드"],
+    bg_color="#FFD03C",
+)
+```
 
 ### Phase 4: Figma 삽입
 
