@@ -35,12 +35,21 @@ def load_env() -> Dict[str, str]:
     """
     from .config import PROJECT_ROOT
 
+    # Railway/클라우드: os.environ에 이미 세팅됨 → .env 파일 불필요
+    # 로컬: .env 파일에서 로딩
     env_locations = [
-        Path.home() / ".config" / "last30days" / ".env",   # global
-        Path("c:/python/venv") / ".env",                     # venv root
-        Path("c:/python/venv/last30days") / ".env",         # last30days
-        PROJECT_ROOT / ".env",                               # project (highest)
+        PROJECT_ROOT / ".env",                               # project root
     ]
+
+    # 로컬 개발 환경 전용 경로 (존재하면 추가)
+    local_paths = [
+        Path.home() / ".config" / "last30days" / ".env",
+        Path("c:/python/venv") / ".env",
+        Path("c:/python/venv/last30days") / ".env",
+    ]
+    for p in local_paths:
+        if p.exists():
+            env_locations.insert(0, p)
 
     merged: Dict[str, str] = {}
     for loc in env_locations:
